@@ -1,17 +1,34 @@
-# clinic_follow_up_reminder_system
+# Mobile Clinic Follow-Up Reminder System
 
-A new Flutter project.
+A privacy-aware clinic follow-up reminder system built with Flutter Web, Laravel, and MySQL.
 
-## Getting Started
+## Project Overview
 
-This project is a starting point for a Flutter application.
+This system helps clinics manage patient follow-up schedules, send reminders, track appointment confirmations, and identify missed or unanswered follow-ups.
 
-A few resources to get you started if this is your first Flutter project:
+## Main Objectives
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- Manage clinic follow-up schedules.
+- Send timely and privacy-conscious reminders.
+- Track confirmations, cancellations, and missed appointments.
+- Retry temporary reminder delivery failures.
+- Allow clinic staff to review unresolved failures.
+- Protect patient information through authentication and access control.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Technology Stack
+
+- **Frontend:** Flutter Web
+- **Backend:** Laravel REST API
+- **Database:** MySQL
+
+## Project Status
+
+Initial project setup. Features will be developed and tested as the project progresses.
+
+## Privacy and Security
+
+The system is intended to use secure authentication, role-based access, input validation, and protected configuration. Reminder messages should avoid exposing sensitive patient information.
+
+## Development Setup
+
+Setup instructions for the Flutter frontend, Laravel backend, and MySQL database will be added as development progresses.
