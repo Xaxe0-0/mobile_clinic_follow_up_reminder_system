@@ -1,139 +1,172 @@
 # Mobile Clinic Follow-Up Reminder System
 
-A privacy-aware clinic follow-up reminder mobile application built with Flutter and Dart for Android, Laravel REST API for the backend, and MySQL for database management. The system aims to help clinics manage follow-up appointments, send timely reminders, track appointment confirmations, and identify missed follow-ups.
+A privacy-aware clinic follow-up reminder application built using **Flutter and Dart** for the frontend, **Laravel REST API** for the backend, and **MySQL** for database management.
+
+The system aims to help clinics manage follow-up appointments, track appointment confirmations, monitor missed follow-ups, and process scheduled reminders. It also includes a reminder retry mechanism to handle temporary delivery failures and identify cases that require manual review.
 
 ## Table of Contents
 
-- [Project Overview](#project-overview)
-- [Objectives](#objectives)
-- [Technology Stack](#technology-stack)
-- [Planned Features](#planned-features)
-- [System Architecture](#system-architecture)
-- [Project Requirements](#project-requirements)
-- [Installation and Setup](#installation-and-setup)
-- [Running the Project](#running-the-project)
-- [GitHub Workflow](#github-workflow)
-- [Security and Privacy](#security-and-privacy)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [Documentation and Maintenance](#documentation-and-maintenance)
-- [Project Status](#project-status)
+1. [Project Overview](#project-overview)
+2. [Objectives](#objectives)
+3. [Technology Stack](#technology-stack)
+4. [System Modules](#system-modules)
+5. [System Features](#system-features)
+6. [System Architecture](#system-architecture)
+7. [Project Requirements](#project-requirements)
+8. [Installation and Setup](#installation-and-setup)
+9. [Running the Project](#running-the-project)
+10. [User Manual](#user-manual)
+11. [GitHub Workflow](#github-workflow)
+12. [Security and Privacy](#security-and-privacy)
+13. [Testing](#testing)
+14. [Deployment](#deployment)
+15. [Documentation and Maintenance](#documentation-and-maintenance)
+16. [Project Status](#project-status)
+
+---
 
 ## Project Overview
 
-The Mobile Clinic Follow-Up Reminder System is an Android mobile application designed to help clinics organize follow-up appointments and reduce missed appointments through timely reminders and follow-up tracking.
+The Mobile Clinic Follow-Up Reminder System is designed to help clinics organize follow-up appointments and reduce missed appointments through scheduled reminders and follow-up tracking.
 
-The system will allow authorized users to manage follow-up schedules, record appointment responses, and identify appointments that need further attention. It will also support retrying temporary reminder delivery failures and flagging unresolved failures for staff review.
+The system is intended to support patients and authorized clinic personnel in managing follow-up schedules, recording appointment responses, and identifying appointments that need further attention.
 
-The application is intended for clinic follow-up management and is not a replacement for professional medical advice, diagnosis, or treatment.
+It also includes an automated reminder process with retry and recovery handling. Temporary reminder failures can be retried, while permanent or repeated failures can be flagged for clinic staff review.
+
+The application is intended for clinic follow-up management. It is not a replacement for professional medical advice, diagnosis, or treatment.
 
 ## Objectives
 
 - Organize and manage clinic follow-up schedules.
 - Help patients receive reminders about upcoming follow-ups.
-- Track appointment confirmations, cancellations, and missed appointments.
-- Reduce missed follow-ups through timely notifications.
+- Track appointment confirmations, cancellations, and completed appointments.
+- Identify missed or unanswered follow-ups.
 - Retry temporary reminder delivery failures.
-- Allow authorized clinic staff to review unresolved delivery failures.
+- Allow authorized clinic staff to review unresolved reminder failures.
 - Protect patient information through authentication and access control.
-- Maintain clear documentation for testing, deployment, and future maintenance.
+- Maintain documentation for testing, deployment, and future maintenance.
 
 ## Technology Stack
 
 | Technology | Purpose |
 |---|---|
-| Flutter | Build the Android mobile application |
-| Dart | Mobile application programming language |
-| Android Studio | Development, debugging, and Android emulator testing |
-| Laravel | Backend REST API |
+| Flutter | Build the application interface |
+| Dart | Frontend programming language |
+| Laravel 12 | Backend REST API |
 | PHP | Backend programming language |
 | MySQL | Database management |
+| Laravel Scheduler | Schedule automated reminder processing |
+| Laravel Queue | Process reminder jobs |
+| Laravel Sanctum | API token authentication support |
+| Visual Studio Code | Code editing and development |
+| Android Studio | Android development and emulator support |
+| Postman | API testing |
+| PHPUnit | Backend testing |
+| Flutter Test | Frontend testing |
 | Git and GitHub | Version control and source code hosting |
-| HTTPS | Secure communication in deployment |
 
-Additional tools and services for email or push notifications, automated scheduling, and deployment may be selected as development progresses.
+## System Modules
 
-## Planned Features
+The system is organized into the following modules:
 
-### 1. User Authentication and Authorization
+1. **Dashboard Module** – Displays a summary of follow-ups, reminders, and recent activities.
+2. **User Authentication Module** – Provides the login and account access interface.
+3. **Follow-Up Management Module** – Manages follow-up appointment schedules and their statuses.
+4. **Reminder Management Module** – Displays and monitors scheduled reminders and delivery statuses.
+5. **Automated Reminder Processing Module** – Processes reminders using the Laravel Scheduler and Queue.
+6. **Reminder Retry and Recovery Module** – Handles temporary failures and retries reminder processing.
+7. **Activity Logs Module** – Records important system activities and status changes.
+8. **Patient Profile Module** – Displays patient account information.
 
-- Secure login and logout.
-- Role-based access for patients and authorized clinic staff.
-- Server-side authorization checks.
-- Secure password recovery.
+## System Features
+
+### 1. User Authentication
+
+- Login interface.
+- Logout interface.
+- Planned role-based access for patients and clinic personnel.
+- Backend authentication and authorization support using Laravel Sanctum.
 
 ### 2. Follow-Up Appointment Management
 
-- Create and manage follow-up schedules.
+- Create follow-up schedules.
 - View upcoming and previous follow-ups.
-- Update appointment information when authorized.
-- Record appointment status, including confirmed, cancelled, completed, missed, and awaiting response.
+- Update appointment information.
+- Track follow-up statuses such as scheduled, confirmed, completed, cancelled, and no response.
 
 ### 3. Reminder Management
 
-- Send reminders for upcoming follow-ups.
-- Use clear messages that avoid exposing sensitive medical information.
-- Track reminder delivery and response status.
+- Schedule reminders for upcoming follow-ups.
+- Display reminder statuses.
+- Track reminder attempts.
 - Retry temporary delivery failures.
-- Flag permanent or repeated failures for manual review.
+- Flag unresolved failures for manual review.
 
-### 4. Appointment Response Tracking
+### 4. Automated Reminder Processing
 
-- Record patient confirmations and cancellations.
-- Identify patients who have not responded.
-- Identify missed follow-ups.
-- Allow authorized staff to review cases that require further action.
+- Process reminders that are due.
+- Use Laravel Scheduler to identify reminders ready for processing.
+- Use Laravel Queue to process reminder jobs.
+- Record reminder attempts and their results.
+- Support simulated successful delivery after a temporary failure.
 
-### 5. Privacy and Audit Support
+### 5. Activity Logs
 
-- Validate input on the server.
-- Limit access to authorized users.
-- Avoid storing unnecessary patient information.
-- Keep logs free of passwords, authentication tokens, and sensitive medical details.
-- Record important system actions where appropriate.
+- Record important reminder processing activities.
+- Track status changes.
+- Identify reminders that require staff review.
 
-**Note:** These are planned features. Their availability will depend on the current implementation and testing results.
+### 6. Privacy and Security
+
+- Validate incoming information on the backend.
+- Support authentication and authorization.
+- Avoid exposing sensitive medical information in reminder messages.
+- Keep passwords and authentication tokens out of application logs.
+- Use controlled sample data during development.
+
+**Note:** Some features are still under development. Their availability depends on the current implementation and testing results.
 
 ## System Architecture
 
-The application will use a client-server architecture.
+The system follows a client-server architecture.
 
-1. **Flutter Android app:** Displays the mobile interface and sends requests to the backend.
-2. **Laravel REST API:** Validates requests, checks authorization, applies business rules, and processes follow-up records.
-3. **MySQL:** Stores the application's required user, appointment, and reminder information.
-4. **Reminder service:** Handles reminder scheduling, delivery attempts, retries, and failure reporting through a suitable notification provider.
+1. **Flutter Frontend:** Displays the user interface and sends requests to the backend.
+2. **Laravel REST API:** Handles requests, validates information, applies business rules, and processes records.
+3. **MySQL Database:** Stores user, follow-up, reminder, reminder attempt, and activity log information.
+4. **Laravel Scheduler:** Checks for reminders that are ready to be processed.
+5. **Laravel Queue:** Handles reminder processing jobs.
+6. **Reminder Service:** Simulates reminder delivery, handles retries, and records processing results.
 
-The Flutter mobile app should communicate with the database through the Laravel API rather than connecting directly to MySQL.
+The Flutter application communicates with MySQL through the Laravel REST API. It should never connect directly to the database.
 
 ## Project Requirements
 
 Install the following tools before starting development:
 
 - Flutter SDK
-- Dart SDK, included with Flutter
-- Android Studio
-- Android SDK and an Android emulator, or a physical Android device
-- PHP version compatible with the selected Laravel release
+- Dart SDK (included with Flutter)
+- PHP compatible with Laravel 12
 - Composer
 - MySQL Server
-- Node.js and npm, if needed for Laravel frontend assets
-- Git
 - Visual Studio Code or another code editor
+- Git
+- Android Studio and Android SDK if building or testing for Android
+- Postman for API testing
 
-A physical Android phone can be used for testing if USB debugging is enabled and the device is authorized. Visual Studio with the required C++ tools is only necessary if building the Flutter application for Windows desktop; it is not required for Android builds.
+Node.js and npm may also be needed for Laravel frontend assets.
 
 ## Installation and Setup
 
 ### 1. Clone the Repository
 
-Open a terminal and run:
+Open PowerShell or a terminal and run:
 
 ```bash
 git clone https://github.com/Xaxe0-0/mobile_clinic_follow_up_reminder_system.git
 cd mobile_clinic_follow_up_reminder_system
 ```
 
-### 2. Set Up the Flutter Mobile App
+### 2. Set Up the Flutter Frontend
 
 Install the Flutter dependencies:
 
@@ -141,140 +174,138 @@ Install the Flutter dependencies:
 flutter pub get
 ```
 
-Check the Flutter installation and Android setup:
+Check the Flutter installation:
 
 ```bash
 flutter doctor
 ```
 
-Check for available Android devices or emulators:
+Check the available devices:
 
 ```bash
 flutter devices
 ```
 
-Start an Android emulator from Android Studio's Device Manager, or connect an Android phone with USB debugging enabled.
+The current frontend can be run in Chrome using Flutter Web. Android testing requires an available Android emulator or physical device.
 
 ### 3. Set Up the Laravel Backend
 
-The Laravel backend should be maintained in a separate folder, such as `backend`, unless the project structure is changed later.
+Open a separate terminal and enter the backend folder:
 
-If the backend has not been created yet, make sure Composer and a compatible PHP version are installed. From the project root, create it with:
-
-```bash
-composer create-project laravel/laravel backend
-```
-
-Enter the backend folder:
-
-```bash
+```powershell
 cd backend
 ```
 
-Install any required dependencies:
+Install the dependencies:
 
 ```bash
 composer install
 ```
 
-Create the local environment file if it does not exist.
-
-On Windows PowerShell:
+Create the environment file if it does not exist:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-On macOS or Linux:
-
-```bash
-cp .env.example .env
-```
-
-Generate the Laravel application key:
+Generate the application key:
 
 ```bash
 php artisan key:generate
 ```
 
-Configure the database and other environment settings in the backend's `.env` file.
-
-**Important:** Do not commit real credentials, API keys, passwords, or production environment files to GitHub.
-
 ### 4. Configure the MySQL Database
 
-Create a database in MySQL:
+Create the database in MySQL or phpMyAdmin:
 
 ```sql
-CREATE DATABASE clinic_follow_up_reminder_system;
+CREATE DATABASE clinic_follow_up_db;
 ```
 
-Update the Laravel backend's `.env` file with the appropriate local database settings:
+Update the backend `.env` file with your local database configuration:
 
 ```dotenv
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=clinic_follow_up_reminder_system
-DB_USERNAME=your_mysql_username
-DB_PASSWORD=your_mysql_password
+DB_DATABASE=clinic_follow_up_db
+DB_USERNAME=root
+DB_PASSWORD=
 ```
 
-Replace the example username and password with your own local MySQL credentials. Keep these values private.
+Change the username and password if your local MySQL installation uses different credentials.
 
-After creating the Laravel migrations, run:
+Configure the queue and reminder simulation:
+
+```dotenv
+QUEUE_CONNECTION=database
+REMINDER_SIMULATION_MODE=success_after_retry
+```
+
+Do not upload the `.env` file or real credentials to GitHub.
+
+### 5. Run the Database Migrations
+
+From the backend folder, execute:
 
 ```bash
 php artisan migrate
 ```
 
-### 5. Run the Laravel Backend
+This creates the required database tables.
 
-From the backend folder:
+### 6. Clear the Laravel Configuration Cache
+
+Run:
 
 ```bash
-php artisan serve
+php artisan optimize:clear
 ```
 
-Laravel will display the local development address, commonly:
+### 7. Configure the Flutter API URL
+
+The Flutter frontend must use the correct Laravel API address.
+
+For local Chrome development, the API base URL is commonly:
 
 ```text
-http://127.0.0.1:8000
+http://127.0.0.1:8000/api
 ```
 
-The Flutter app needs the correct API base URL to communicate with the backend.
-
-**Android emulator note:** When using the standard Android Studio emulator, `127.0.0.1` refers to the emulator itself. To access a backend running on the development computer, use `http://10.0.2.2:8000/api` for local emulator testing. For a physical phone, use the computer's reachable local network IP address and ensure the phone and computer can communicate. These local HTTP addresses are for development only; use HTTPS in production.
-
-### 6. Connect Flutter to Laravel
-
-Configure the Flutter application to use the Laravel API's base URL. The exact URL depends on whether the app is running on an Android emulator, a physical phone, or a production server.
-
-For the standard Android Studio emulator, the local API base URL may be:
+For the standard Android Studio emulator, use:
 
 ```text
 http://10.0.2.2:8000/api
 ```
 
-Make sure the corresponding Laravel API routes exist, CORS is configured where applicable, and authentication is implemented securely. Use HTTPS in production.
+For a physical Android device, use the computer's reachable local network IP address.
+
+These HTTP addresses are for local development only. Use HTTPS for production.
 
 ## Running the Project
 
-For local development, use two terminals.
+For local development, you may need multiple terminals.
 
-**Terminal 1 — Flutter mobile app**
+### Terminal 1 – Flutter Frontend
 
 From the project root:
 
 ```bash
 flutter pub get
-flutter devices
+flutter run -d chrome
+```
+
+This starts the Flutter application in Google Chrome.
+
+For Android testing, use:
+
+```bash
 flutter run
 ```
 
-Select the Android emulator or connected device if prompted.
+Select an available Android device when prompted.
 
-**Terminal 2 — Laravel backend**
+### Terminal 2 – Laravel Backend
 
 From the backend folder:
 
@@ -282,11 +313,168 @@ From the backend folder:
 php artisan serve
 ```
 
-Make sure MySQL is running and the Laravel database settings are correct before testing API requests.
+The local backend address is commonly:
+
+```text
+http://127.0.0.1:8000
+```
+
+### Terminal 3 – Laravel Queue Worker
+
+From the backend folder:
+
+```bash
+php artisan queue:work
+```
+
+This processes queued reminder jobs.
+
+### Terminal 4 – Laravel Scheduler
+
+From the backend folder:
+
+```bash
+php artisan schedule:work
+```
+
+This continuously checks scheduled tasks, including due reminders.
+
+Keep the queue worker and scheduler running when testing automated reminder processing.
+
+To stop a running development process, press `Ctrl + C` in its terminal.
+
+## User Manual
+
+This section explains how to use the current application interface. Some screens currently display sample information and may not yet be connected to the backend database.
+
+### 1. Opening the Application
+
+1. Open the project folder in Visual Studio Code or PowerShell.
+2. Make sure the Flutter dependencies are installed.
+3. Run the application:
+
+   ```bash
+   flutter run -d chrome
+   ```
+
+4. Wait for Google Chrome to open.
+5. The login screen should appear.
+
+### 2. Logging In
+
+1. Enter an email address containing `@`.
+2. Enter any non-empty password.
+3. Click the **Login** button.
+4. The dashboard should appear.
+
+**Important:** The current frontend login is only a prototype. It checks the input format but does not yet verify the account against Laravel authentication. Do not use it as a real secure login system.
+
+### 3. Using the Dashboard
+
+The Dashboard is the main screen after entering the application.
+
+Users can view:
+
+- Summary cards for follow-ups and reminders.
+- A list of follow-up appointments.
+- Recent system activities.
+- Navigation options for the other modules.
+
+The displayed information is currently sample data.
+
+### 4. Managing Follow-Ups
+
+1. Open the **Follow-Ups** module from the sidebar.
+2. Review the displayed follow-up records.
+3. Click the **Add Follow-Up** button to open the form.
+4. Enter the required sample appointment information.
+5. Submit the form.
+6. Review the added record in the list.
+
+The current add-follow-up interface uses local frontend state. It does not yet save the record to MySQL through the Laravel API.
+
+### 5. Viewing Reminders
+
+1. Open the **Reminders** module.
+2. Review the available reminder records.
+3. Check the displayed reminder statuses.
+4. Identify reminders that are pending, delivered, retrying, failed, or require manual review.
+
+The current screen uses sample information. Actual reminder records should be connected to the backend before real use.
+
+### 6. Viewing Activity Logs
+
+1. Open the **Activity Logs** module.
+2. Review the displayed activities.
+3. Check the activity descriptions and status changes.
+
+The backend has an activity log structure for recording important system events. The current frontend activity list still uses sample data.
+
+### 7. Viewing the Patient Profile
+
+1. Open the **My Profile** module.
+2. Review the displayed profile information.
+3. Use the sidebar to return to another module.
+
+The current profile screen displays sample information and is not yet connected to a real authenticated patient account.
+
+### 8. Logging Out
+
+1. Open the sidebar.
+2. Locate the **Sign Out** option.
+3. Click it to return to the login screen.
+
+The current sign-out behavior is a frontend navigation action, not yet a complete Laravel token logout process.
+
+### 9. Testing Automated Reminder Processing
+
+For development and demonstration, the backend supports simulated reminder processing.
+
+1. Make sure MySQL is running.
+2. Start the Laravel backend.
+3. Start the queue worker:
+
+   ```bash
+   php artisan queue:work
+   ```
+
+4. Start the scheduler:
+
+   ```bash
+   php artisan schedule:work
+   ```
+
+5. Create a fictional test follow-up and reminder record using the backend.
+6. Dispatch or wait for the reminder job to be processed.
+7. Check the reminder status and attempt records in the database.
+
+With the default `success_after_retry` simulation mode:
+
+- The first attempt produces a simulated temporary failure.
+- The reminder changes to `retrying`.
+- Another attempt is scheduled after one minute.
+- The next attempt simulates successful delivery.
+- The reminder changes to `delivered`.
+
+For permanent failure testing, the simulation mode can be changed to:
+
+```dotenv
+REMINDER_SIMULATION_MODE=permanent_failure
+```
+
+After changing the `.env` configuration, run:
+
+```bash
+php artisan optimize:clear
+```
+
+Restart the queue worker before testing again.
+
+**Reminder:** This is a development simulation. It does not send actual SMS or email notifications.
 
 ## Building an Android APK
 
-When you are ready to create an Android APK for testing, run this from the Flutter project root:
+When Android support is ready for testing, run this command from the Flutter project root:
 
 ```bash
 flutter build apk --release
@@ -298,67 +486,67 @@ The generated APK is usually located at:
 build/app/outputs/flutter-apk/app-release.apk
 ```
 
-Build and test the app before distributing it. Store signing keys and production secrets securely; do not commit them to GitHub.
+Install and test the APK on a compatible Android device before distributing it.
+
+Keep signing keys and production secrets secure. Do not commit them to GitHub.
 
 ## GitHub Workflow
 
-Use Git to save changes and synchronize your local project with GitHub.
+Use Git to save changes and synchronize the local project with GitHub.
 
-### Check the current status
+### Check the Current Status
 
 ```bash
 git status
 ```
 
-### Add changes
+### Add Changes
 
 ```bash
 git add .
 ```
 
-### Commit changes
+### Commit Changes
 
 ```bash
-git commit -m "Describe your changes"
+git commit -m "Update clinic follow-up reminder system"
 ```
 
-### Push changes to GitHub
+### Push Changes to GitHub
 
 ```bash
-git push
+git push origin main
 ```
 
-### Pull the latest changes
+### Pull the Latest Changes
 
 ```bash
-git pull
+git pull origin main
 ```
 
-Write meaningful commit messages, and review changes before committing. Never commit `.env` files or other sensitive configuration.
-
-If you work with other developers, coordinate changes and resolve merge conflicts before pushing.
+Review your changes before committing. Never commit `.env` files, passwords, API keys, or real patient information.
 
 ## Security and Privacy
 
-Because this project may handle sensitive appointment information, privacy and security must be considered throughout development.
+Because the system may handle sensitive appointment information, privacy and security must be considered throughout development.
 
 - Use authentication and role-based authorization.
-- Validate and sanitize incoming data on the backend.
+- Validate incoming information on the backend.
 - Use HTTPS in production.
 - Store secrets in protected environment variables.
-- Avoid including patient names, diagnoses, passwords, or tokens in reminder messages and application logs.
+- Avoid including patient names, diagnoses, passwords, or authentication tokens in reminder messages and application logs.
 - Collect only the information required for follow-up management.
 - Restrict access to patient records to authorized users.
-- Use controlled test data during development.
-- Protect uploaded files and validate their type and size when uploads are supported.
+- Use fictional or approved test data during development.
+- Validate uploaded file types and sizes.
 - Apply appropriate database backups and access controls.
-- Review error handling to avoid exposing internal system details.
+- Avoid exposing internal system details through error messages.
 
-A reminder should use privacy-conscious wording, such as:
+Example of a privacy-conscious reminder:
 
 > You have an upcoming follow-up appointment. Please sign in to view your schedule.
 
-Do not include sensitive medical details in ordinary notification messages.
+Do not include sensitive medical details in ordinary reminder messages.
 
 ## Testing
 
@@ -366,18 +554,19 @@ Testing should be performed as features are implemented.
 
 Planned testing activities include:
 
-- Authentication and authorization testing.
+- Login and authentication testing.
+- Role-based authorization testing.
 - Follow-up schedule creation and updates.
 - Appointment confirmation and cancellation.
 - Missed and unanswered follow-up handling.
 - Reminder delivery and retry behavior.
-- Handling temporary and permanent delivery failures.
+- Temporary and permanent delivery failure handling.
 - Input validation and error handling.
 - Database operations and API responses.
 - Privacy and access-control checks.
-- Flutter app and Laravel backend integration testing.
-- Performance testing under expected and peak workloads.
-- Testing on an Android emulator and, where possible, a physical Android device.
+- Flutter and Laravel integration testing.
+- Performance and reliability testing.
+- Android emulator and physical device testing, when available.
 
 Use controlled test accounts and sample data. Document actual results and unresolved issues rather than reporting tests as passed before they are performed.
 
@@ -389,36 +578,42 @@ Deployment requirements include:
 
 - A suitable hosting environment for Laravel and PHP.
 - A MySQL database.
-- A release build of the Flutter Android application.
-- HTTPS for communication with the backend.
+- A release build of the Flutter application.
+- HTTPS for backend communication.
 - Secure production environment configuration.
-- Correct API base URL and server configuration.
-- A reliable mechanism for scheduled reminders.
+- A correct production API base URL.
+- A reliable mechanism for scheduled reminder processing.
 - Monitoring for failed reminder attempts.
 - Database backup and recovery procedures.
 
-The backend must be hosted on a server reachable by the mobile app. A local development address such as `127.0.0.1` or `10.0.2.2` should not be used as the production API URL. Deployment steps will depend on the hosting provider selected for the project.
+The backend must be hosted on a server reachable by the application. Local development addresses such as `127.0.0.1` and `10.0.2.2` must not be used as production API addresses.
 
 ## Documentation and Maintenance
 
-The project documentation should include:
+Project documentation should include:
 
 - Installation and setup instructions.
 - Database schema and migration information.
-- API endpoint documentation, preferably using OpenAPI.
-- Testing procedures and results.
+- API endpoint documentation.
+- Testing procedures and actual results.
 - User acceptance testing documentation.
 - Deployment instructions.
 - Known issues and limitations.
 - Backup and recovery procedures.
 - Maintenance and troubleshooting instructions.
 
-Keep the documentation updated when system features, dependencies, configuration, or deployment procedures change.
+Update the documentation whenever system features, dependencies, configuration, or deployment procedures change.
 
 ## Project Status
 
-**Current stage:** Initial project setup.
+**Current Stage: Initial Development and Frontend Prototype**
 
-The Flutter project has been initialized and uploaded to GitHub. The target platform is Android mobile. Backend development, database integration, reminder functionality, testing, and deployment should be documented as they are completed.
+The Flutter project has been initialized and uploaded to GitHub. The current frontend includes the login interface, dashboard, follow-up screen, reminders screen, activity logs, and patient profile screen.
 
-This repository will serve as the main source code repository for the Mobile Clinic Follow-Up Reminder System.
+The Laravel backend has been created with database migrations, API controllers, reminder processing services, queue jobs, and scheduler configuration.
+
+Reminder delivery is currently simulated to demonstrate retry and recovery behavior. The frontend is not yet fully connected to Laravel authentication and live database records.
+
+Further development is needed for secure authentication, role-based authorization, complete frontend-backend integration, actual notification provider integration, testing, and deployment.
+
+This repository serves as the main source code repository for the Mobile Clinic Follow-Up Reminder System.
