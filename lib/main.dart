@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'services/api_service.dart';
+
 const violet = Color(0xFF8B5CF6);
 const violetLight = Color(0xFFF0EAFE);
 const dark = Color(0xFF17151F);
@@ -63,7 +65,9 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+
   bool obscurePassword = true;
+  bool isLoading = false;
 
   @override
   void dispose() {
@@ -72,10 +76,11 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  void login() {
-    if (emailController.text.trim().isEmpty ||
-        !emailController.text.contains('@') ||
-        passwordController.text.isEmpty) {
+  Future<void> login() async {
+    final email = emailController.text.trim();
+    final password = passwordController.text;
+
+    if (email.isEmpty || !email.contains('@') || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please enter a valid email and password.'),
@@ -84,181 +89,265 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const MainShell()),
-    );
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final response = await ApiService.login(email: email, password: password);
+
+      if (!mounted) return;
+
+      final user = Map<String, dynamic>.from(response['user']);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => MainShell(user: user)),
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.toString().replaceFirst('Exception: ', '')),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Row(
-        children: [
-          Expanded(
-            flex: 5,
-            child: Container(
-              color: dark,
-              padding: const EdgeInsets.all(48),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const BrandLogo(light: true),
-                  const Spacer(),
-                  const Text(
-                    'Your health,\nour priority.',
-                    style: TextStyle(
-                      color: white,
-                      fontSize: 46,
-                      height: 1.2,
-                      fontWeight: FontWeight.bold,
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 850;
+
+          final loginForm = Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(28),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 390),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(13),
+                      decoration: BoxDecoration(
+                        color: violetLight,
+                        borderRadius: BorderRadius.circular(13),
+                      ),
+                      child: const Icon(
+                        Icons.local_hospital_rounded,
+                        color: violet,
+                        size: 30,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Keep track of your follow-up appointments and never miss an important schedule.',
-                    style: TextStyle(color: Color(0xFFB8B4C2), fontSize: 16),
-                  ),
-                  const SizedBox(height: 36),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF292633),
-                      borderRadius: BorderRadius.circular(16),
+                    const SizedBox(height: 25),
+                    const Text(
+                      'Welcome back',
+                      style: TextStyle(
+                        color: dark,
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.verified_user_outlined,
-                          color: violet,
-                          size: 30,
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Sign in to access your clinic account.',
+                      style: TextStyle(color: gray),
+                    ),
+                    const SizedBox(height: 30),
+                    const FieldLabel('Email address'),
+                    const SizedBox(height: 9),
+                    TextField(
+                      controller: emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        hintText: 'name@example.com',
+                        prefixIcon: Icon(Icons.mail_outline),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    const FieldLabel('Password'),
+                    const SizedBox(height: 9),
+                    TextField(
+                      controller: passwordController,
+                      obscureText: obscurePassword,
+                      decoration: InputDecoration(
+                        hintText: 'Enter your password',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              obscurePassword = !obscurePassword;
+                            });
+                          },
+                          icon: Icon(
+                            obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                          ),
                         ),
-                        SizedBox(width: 14),
-                        Expanded(
-                          child: Text(
-                            'Your follow-up information is handled with care.',
-                            style: TextStyle(color: white),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: FilledButton(
+                        onPressed: isLoading ? null : login,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: violet,
+                          foregroundColor: white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: white,
+                                ),
+                              )
+                            : const Text(
+                                'Sign In',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Center(
+                      child: Text(
+                        'Clinic Follow-Up Reminder System',
+                        style: TextStyle(color: gray, fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+
+          if (isWide) {
+            return Row(
+              children: [
+                Expanded(
+                  flex: 5,
+                  child: Container(
+                    color: dark,
+                    padding: const EdgeInsets.all(48),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const BrandLogo(light: true),
+                        const Spacer(),
+                        const Text(
+                          'Your health,\nour priority.',
+                          style: TextStyle(
+                            color: white,
+                            fontSize: 46,
+                            height: 1.2,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        const Text(
+                          'Keep track of your follow-up appointments and never miss an important schedule.',
+                          style: TextStyle(
+                            color: Color(0xFFB8B4C2),
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 36),
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF292633),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(
+                                Icons.verified_user_outlined,
+                                color: violet,
+                                size: 30,
+                              ),
+                              SizedBox(width: 14),
+                              Expanded(
+                                child: Text(
+                                  'Your follow-up information is handled with care.',
+                                  style: TextStyle(color: white),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Spacer(),
+                        const Text(
+                          'CLINIC FOLLOW-UP REMINDER SYSTEM',
+                          style: TextStyle(
+                            color: Color(0xFF888493),
+                            fontSize: 11,
+                            letterSpacing: 1.5,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Spacer(),
-                  const Text(
-                    'CLINIC FOLLOW-UP REMINDER SYSTEM',
-                    style: TextStyle(
-                      color: Color(0xFF888493),
-                      fontSize: 11,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 5,
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(32),
-                child: SizedBox(
-                  width: 390,
-                  child: Column(
+                ),
+                Expanded(flex: 5, child: loginForm),
+              ],
+            );
+          }
+
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(24, 35, 24, 30),
+                  color: dark,
+                  child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(13),
-                        decoration: BoxDecoration(
-                          color: violetLight,
-                          borderRadius: BorderRadius.circular(13),
-                        ),
-                        child: const Icon(
-                          Icons.local_hospital_rounded,
-                          color: violet,
-                          size: 30,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      const Text(
-                        'Welcome back',
+                      BrandLogo(light: true),
+                      SizedBox(height: 25),
+                      Text(
+                        'Your health,\nour priority.',
                         style: TextStyle(
-                          color: dark,
-                          fontSize: 30,
+                          color: white,
+                          fontSize: 28,
+                          height: 1.2,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Sign in to access your clinic account.',
-                        style: TextStyle(color: gray),
-                      ),
-                      const SizedBox(height: 32),
-                      const FieldLabel('Email address'),
-                      const SizedBox(height: 9),
-                      TextField(
-                        controller: emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          hintText: 'name@example.com',
-                          prefixIcon: Icon(Icons.mail_outline),
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      const FieldLabel('Password'),
-                      const SizedBox(height: 9),
-                      TextField(
-                        controller: passwordController,
-                        obscureText: obscurePassword,
-                        decoration: InputDecoration(
-                          hintText: 'Enter your password',
-                          prefixIcon: const Icon(Icons.lock_outline),
-                          suffixIcon: IconButton(
-                            onPressed: () {
-                              setState(() {
-                                obscurePassword = !obscurePassword;
-                              });
-                            },
-                            icon: Icon(
-                              obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: FilledButton(
-                          onPressed: login,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: violet,
-                            foregroundColor: white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                          child: const Text(
-                            'Sign In',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      const Center(
-                        child: Text(
-                          'Clinic Follow-Up Reminder System',
-                          style: TextStyle(color: gray, fontSize: 12),
+                      SizedBox(height: 10),
+                      Text(
+                        'Keep track of your follow-up appointments and never miss an important schedule.',
+                        style: TextStyle(
+                          color: Color(0xFFB8B4C2),
+                          fontSize: 13,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
+                loginForm,
+              ],
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -267,7 +356,9 @@ class _LoginPageState extends State<LoginPage> {
 // MAIN APPLICATION LAYOUT
 
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  final Map<String, dynamic> user;
+
+  const MainShell({super.key, required this.user});
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -275,13 +366,14 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int selectedIndex = 0;
+  bool isLoggingOut = false;
 
-  final pages = const [
-    DashboardPage(),
-    FollowUpsPage(),
-    RemindersPage(),
-    ActivityPage(),
-    ProfilePage(),
+  late final List<Widget> pages = [
+    const DashboardPage(),
+    const FollowUpsPage(),
+    const RemindersPage(),
+    const ActivityPage(),
+    ProfilePage(user: widget.user),
   ];
 
   final titles = [
@@ -291,6 +383,45 @@ class _MainShellState extends State<MainShell> {
     'Activity Logs',
     'My Profile',
   ];
+
+  String get userName => widget.user['name']?.toString() ?? 'Patient Account';
+
+  String get userEmail => widget.user['email']?.toString() ?? '';
+
+  Future<void> signOut() async {
+    if (isLoggingOut) return;
+
+    setState(() {
+      isLoggingOut = true;
+    });
+
+    try {
+      await ApiService.logout();
+
+      if (!mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Logout failed: $error'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoggingOut = false;
+        });
+      }
+    }
+  }
 
   void selectPage(int index) {
     setState(() => selectedIndex = index);
@@ -329,11 +460,17 @@ class _MainShellState extends State<MainShell> {
           ),
           ...List.generate(items.length, (index) {
             final active = selectedIndex == index;
+
             return Padding(
               padding: const EdgeInsets.only(bottom: 7),
               child: InkWell(
                 borderRadius: BorderRadius.circular(10),
-                onTap: () => setState(() => selectedIndex = index),
+                onTap: () {
+                  if (context.findAncestorWidgetOfExactType<Drawer>() != null) {
+                    Navigator.pop(context);
+                  }
+                  setState(() => selectedIndex = index);
+                },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 13,
@@ -373,27 +510,29 @@ class _MainShellState extends State<MainShell> {
               color: background,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   backgroundColor: violetLight,
                   child: Icon(Icons.person, color: violet),
                 ),
-                SizedBox(width: 10),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Patient Account',
-                        style: TextStyle(
+                        userName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
                           color: dark,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       Text(
-                        'Standard user',
-                        style: TextStyle(color: gray, fontSize: 11),
+                        widget.user['role']?.toString() ?? 'User',
+                        style: const TextStyle(color: gray, fontSize: 11),
                       ),
                     ],
                   ),
@@ -403,15 +542,15 @@ class _MainShellState extends State<MainShell> {
           ),
           const SizedBox(height: 12),
           TextButton.icon(
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false,
-              );
-            },
-            icon: const Icon(Icons.logout, size: 18),
-            label: const Text('Sign Out'),
+            onPressed: isLoggingOut ? null : signOut,
+            icon: isLoggingOut
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.logout, size: 18),
+            label: Text(isLoggingOut ? 'Signing Out...' : 'Sign Out'),
             style: TextButton.styleFrom(foregroundColor: gray),
           ),
         ],
@@ -608,91 +747,105 @@ class FollowUpsPage extends StatefulWidget {
 }
 
 class _FollowUpsPageState extends State<FollowUpsPage> {
-  final List<Map<String, String>> followUps = [
-    {
-      'date': 'November 05, 2026',
-      'time': '09:00 AM',
-      'status': 'Scheduled',
-      'reference': 'FU-001',
-    },
-    {
-      'date': 'November 12, 2026',
-      'time': '10:30 AM',
-      'status': 'Confirmed',
-      'reference': 'FU-002',
-    },
-    {
-      'date': 'October 25, 2026',
-      'time': '01:00 PM',
-      'status': 'Completed',
-      'reference': 'FU-003',
-    },
-  ];
+  List<Map<String, dynamic>> followUps = [];
+  bool isLoading = true;
+  String? errorMessage;
 
-  Future<void> addFollowUp() async {
-    final dateController = TextEditingController();
-    final timeController = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    loadFollowUps();
+  }
 
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Add Follow-Up'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: dateController,
-              decoration: const InputDecoration(
-                labelText: 'Appointment date',
-                hintText: 'e.g. November 20, 2026',
-              ),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: timeController,
-              decoration: const InputDecoration(
-                labelText: 'Appointment time',
-                hintText: 'e.g. 09:00 AM',
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (dateController.text.trim().isEmpty ||
-                  timeController.text.trim().isEmpty) {
-                return;
-              }
-              Navigator.pop(dialogContext, true);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
+  Future<void> loadFollowUps() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
 
-    if (result == true && mounted) {
+    try {
+      final response = await ApiService.get('follow-ups');
+
+      List<dynamic> records;
+
+      if (response is List) {
+        records = response;
+      } else if (response is Map && response['data'] is List) {
+        records = response['data'] as List;
+      } else {
+        throw Exception('Unexpected follow-up response format.');
+      }
+
+      if (!mounted) return;
+
       setState(() {
-        followUps.insert(0, {
-          'date': dateController.text.trim(),
-          'time': timeController.text.trim(),
-          'status': 'Scheduled',
-          'reference':
-              'FU-${(followUps.length + 1).toString().padLeft(3, '0')}',
-        });
+        followUps = records
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+        isLoading = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Sample follow-up added.')));
-    }
+    } catch (error) {
+      if (!mounted) return;
 
-    dateController.dispose();
-    timeController.dispose();
+      setState(() {
+        errorMessage = error.toString().replaceFirst('Exception: ', '');
+        isLoading = false;
+      });
+    }
+  }
+
+  String formatDate(dynamic value) {
+    if (value == null) return 'Date not available';
+
+    final date = DateTime.tryParse(value.toString());
+    if (date == null) return value.toString();
+
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  String formatTime(dynamic value) {
+    if (value == null) return 'Time not available';
+
+    final date = DateTime.tryParse(value.toString());
+    if (date == null) return value.toString();
+
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour >= 12 ? 'PM' : 'AM';
+
+    return '$hour:$minute $period';
+  }
+
+  String referenceFor(Map<String, dynamic> item) {
+    final id = item['id'];
+
+    if (id == null) return 'Follow-Up';
+
+    return 'FU-${id.toString().padLeft(3, '0')}';
+  }
+
+  String statusFor(Map<String, dynamic> item) {
+    final status = item['status']?.toString() ?? 'Scheduled';
+
+    if (status.isEmpty) return 'Scheduled';
+
+    return status[0].toUpperCase() + status.substring(1).replaceAll('_', ' ');
   }
 
   @override
@@ -706,57 +859,122 @@ class _FollowUpsPageState extends State<FollowUpsPage> {
               const Expanded(
                 child: SectionHeader(
                   title: 'Follow-Up Schedules',
-                  subtitle: 'View and manage your appointments.',
+                  subtitle: 'View your saved follow-up appointments.',
                 ),
               ),
-              FilledButton.icon(
-                onPressed: addFollowUp,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add New'),
+              IconButton(
+                tooltip: 'Refresh',
+                onPressed: isLoading ? null : loadFollowUps,
+                icon: const Icon(Icons.refresh, color: violet),
               ),
             ],
           ),
           const SizedBox(height: 22),
-          ...followUps.map((item) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(18),
+
+          if (isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(35),
+                child: CircularProgressIndicator(color: violet),
+              ),
+            )
+          else if (errorMessage != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
               decoration: panelDecoration,
-              child: Row(
+              child: Column(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: violetLight,
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    child: const Icon(Icons.calendar_month, color: violet),
+                  const Icon(Icons.error_outline, color: Colors.red, size: 35),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Unable to load follow-ups',
+                    style: TextStyle(color: dark, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item['reference']!,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: dark,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          '${item['date']} • ${item['time']}',
-                          style: const TextStyle(color: gray, fontSize: 12),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: gray, fontSize: 12),
                   ),
-                  StatusBadge(status: item['status']!),
+                  const SizedBox(height: 14),
+                  OutlinedButton.icon(
+                    onPressed: loadFollowUps,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Try Again'),
+                  ),
                 ],
               ),
-            );
-          }),
+            )
+          else if (followUps.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(30),
+              decoration: panelDecoration,
+              child: const Column(
+                children: [
+                  Icon(Icons.calendar_month_outlined, color: violet, size: 42),
+                  SizedBox(height: 12),
+                  Text(
+                    'No follow-up schedules yet.',
+                    style: TextStyle(color: dark, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Your saved appointments will appear here.',
+                    style: TextStyle(color: gray, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            ...followUps.map((item) {
+              final scheduledAt = item['scheduled_at'];
+              final date = formatDate(scheduledAt);
+              final time = formatTime(scheduledAt);
+              final status = statusFor(item);
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(18),
+                decoration: panelDecoration,
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: violetLight,
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: const Icon(Icons.calendar_month, color: violet),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            referenceFor(item),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: dark,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            '$date • $time',
+                            style: const TextStyle(color: gray, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    StatusBadge(status: status),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );
@@ -765,65 +983,245 @@ class _FollowUpsPageState extends State<FollowUpsPage> {
 
 // REMINDERS
 
-class RemindersPage extends StatelessWidget {
+// REMINDERS
+
+class RemindersPage extends StatefulWidget {
   const RemindersPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final reminders = [
-      ('FU-001', 'November 05, 2026', 'Pending'),
-      ('FU-002', 'November 12, 2026', 'Delivered'),
-      ('FU-003', 'October 25, 2026', 'Delivered'),
-      ('FU-004', 'October 20, 2026', 'Retrying'),
-      ('FU-005', 'October 18, 2026', 'Manual Review'),
+  State<RemindersPage> createState() => _RemindersPageState();
+}
+
+class _RemindersPageState extends State<RemindersPage> {
+  List<Map<String, dynamic>> reminders = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    loadReminders();
+  }
+
+  Future<void> loadReminders() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await ApiService.get('reminders');
+
+      if (response is! Map || response['data'] is! List) {
+        throw Exception('Unexpected reminder response format.');
+      }
+
+      final records = response['data'] as List;
+
+      if (!mounted) return;
+
+      setState(() {
+        reminders = records
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+        isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString().replaceFirst('Exception: ', '');
+        isLoading = false;
+      });
+    }
+  }
+
+  String formatDate(dynamic value) {
+    if (value == null) return 'Date not available';
+
+    final date = DateTime.tryParse(value.toString());
+    if (date == null) return value.toString();
+
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
 
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  String referenceFor(Map<String, dynamic> item) {
+    final followUpId = item['follow_up_id'] ?? item['follow_up']?['id'];
+
+    if (followUpId == null) return 'Reminder';
+
+    return 'FU-${followUpId.toString().padLeft(3, '0')}';
+  }
+
+  String statusFor(Map<String, dynamic> item) {
+    final status = item['status']?.toString() ?? 'Pending';
+
+    if (status.isEmpty) return 'Pending';
+
+    return status[0].toUpperCase() + status.substring(1).replaceAll('_', ' ');
+  }
+
+  String dateFor(Map<String, dynamic> item) {
+    final reminderDate =
+        item['reminder_at'] ??
+        item['scheduled_at'] ??
+        item['sent_at'] ??
+        item['created_at'] ??
+        item['follow_up']?['scheduled_at'];
+
+    return formatDate(reminderDate);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return PageContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SectionHeader(
-            title: 'Reminder History',
-            subtitle: 'Monitor the status of your follow-up reminders.',
+          Row(
+            children: [
+              const Expanded(
+                child: SectionHeader(
+                  title: 'Reminder History',
+                  subtitle: 'Monitor the status of your follow-up reminders.',
+                ),
+              ),
+              IconButton(
+                tooltip: 'Refresh',
+                onPressed: isLoading ? null : loadReminders,
+                icon: const Icon(Icons.refresh, color: violet),
+              ),
+            ],
           ),
           const SizedBox(height: 22),
-          ...reminders.map((item) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(18),
+
+          if (isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(35),
+                child: CircularProgressIndicator(color: violet),
+              ),
+            )
+          else if (errorMessage != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
               decoration: panelDecoration,
-              child: Row(
+              child: Column(
                 children: [
-                  const Icon(
-                    Icons.notifications_none_rounded,
-                    color: violet,
-                    size: 25,
+                  const Icon(Icons.error_outline, color: Colors.red, size: 35),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Unable to load reminders',
+                    style: TextStyle(color: dark, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.$1,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: dark,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          item.$2,
-                          style: const TextStyle(color: gray, fontSize: 12),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: gray, fontSize: 12),
                   ),
-                  StatusBadge(status: item.$3),
+                  const SizedBox(height: 14),
+                  OutlinedButton.icon(
+                    onPressed: loadReminders,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Try Again'),
+                  ),
                 ],
               ),
-            );
-          }),
+            )
+          else if (reminders.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(30),
+              decoration: panelDecoration,
+              child: const Column(
+                children: [
+                  Icon(
+                    Icons.notifications_none_rounded,
+                    color: violet,
+                    size: 42,
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    'No reminders available.',
+                    style: TextStyle(color: dark, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Your reminder records will appear here.',
+                    style: TextStyle(color: gray, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            ...reminders.map((item) {
+              final reference = referenceFor(item);
+              final date = dateFor(item);
+              final status = statusFor(item);
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(18),
+                decoration: panelDecoration,
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(11),
+                      decoration: BoxDecoration(
+                        color: violetLight,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.notifications_none_rounded,
+                        color: violet,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            reference,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: dark,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            date,
+                            style: const TextStyle(color: gray, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    StatusBadge(status: status),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );
@@ -832,44 +1230,210 @@ class RemindersPage extends StatelessWidget {
 
 // ACTIVITY LOGS
 
-class ActivityPage extends StatelessWidget {
+class ActivityPage extends StatefulWidget {
   const ActivityPage({super.key});
 
   @override
+  State<ActivityPage> createState() => _ActivityPageState();
+}
+
+class _ActivityPageState extends State<ActivityPage> {
+  List<Map<String, dynamic>> activities = [];
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    loadActivities();
+  }
+
+  Future<void> loadActivities() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final response = await ApiService.get('activity-logs');
+
+      List<dynamic> records;
+
+      if (response is List) {
+        records = response;
+      } else if (response is Map && response['data'] is List) {
+        records = response['data'] as List;
+      } else {
+        throw Exception('Unexpected activity log response format.');
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        activities = records
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+        isLoading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+
+      setState(() {
+        errorMessage = error.toString().replaceFirst('Exception: ', '');
+        isLoading = false;
+      });
+    }
+  }
+
+  String formatDate(dynamic value) {
+    if (value == null) return 'Date not available';
+
+    final date = DateTime.tryParse(value.toString());
+
+    if (date == null) return value.toString();
+
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+
+    final hour = date.hour % 12 == 0 ? 12 : date.hour % 12;
+    final minute = date.minute.toString().padLeft(2, '0');
+    final period = date.hour >= 12 ? 'PM' : 'AM';
+
+    return '${months[date.month - 1]} ${date.day}, ${date.year} • $hour:$minute $period';
+  }
+
+  String activityTitle(Map<String, dynamic> item) {
+    final event = item['event_type']?.toString() ?? 'Activity';
+
+    return event
+        .replaceAll('_', ' ')
+        .split(' ')
+        .where((word) => word.isNotEmpty)
+        .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
+  }
+
+  IconData activityIcon(Map<String, dynamic> item) {
+    final event = item['event_type']?.toString().toLowerCase() ?? '';
+
+    if (event.contains('login')) return Icons.login;
+    if (event.contains('logout')) return Icons.logout;
+    if (event.contains('reminder')) return Icons.notifications_active_outlined;
+    if (event.contains('follow')) return Icons.calendar_month_outlined;
+    if (event.contains('complete')) return Icons.check_circle_outline;
+    if (event.contains('cancel')) return Icons.cancel_outlined;
+    if (event.contains('update')) return Icons.edit_outlined;
+
+    return Icons.history_rounded;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const PageContainer(
+    return PageContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(
-            title: 'Activity Logs',
-            subtitle: 'A record of recent account and reminder activities.',
+          Row(
+            children: [
+              const Expanded(
+                child: SectionHeader(
+                  title: 'Activity Logs',
+                  subtitle: 'A record of recent account and system activities.',
+                ),
+              ),
+              IconButton(
+                tooltip: 'Refresh',
+                onPressed: isLoading ? null : loadActivities,
+                icon: const Icon(Icons.refresh, color: violet),
+              ),
+            ],
           ),
-          SizedBox(height: 22),
-          ActivityTile(
-            icon: Icons.check_circle_outline,
-            title: 'Reminder delivered',
-            subtitle: 'Reminder FU-002 was marked as delivered.',
-            time: 'November 01, 2026',
-          ),
-          ActivityTile(
-            icon: Icons.refresh,
-            title: 'Reminder retry scheduled',
-            subtitle: 'A temporary failure was recorded.',
-            time: 'October 30, 2026',
-          ),
-          ActivityTile(
-            icon: Icons.calendar_month_outlined,
-            title: 'Follow-up created',
-            subtitle: 'A new follow-up schedule was added.',
-            time: 'October 29, 2026',
-          ),
-          ActivityTile(
-            icon: Icons.login,
-            title: 'Account accessed',
-            subtitle: 'A user signed in to the system.',
-            time: 'October 28, 2026',
-          ),
+          const SizedBox(height: 22),
+
+          if (isLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(35),
+                child: CircularProgressIndicator(color: violet),
+              ),
+            )
+          else if (errorMessage != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: panelDecoration,
+              child: Column(
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 35),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Unable to load activity logs',
+                    style: TextStyle(color: dark, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    errorMessage!,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: gray, fontSize: 12),
+                  ),
+                  const SizedBox(height: 14),
+                  OutlinedButton.icon(
+                    onPressed: loadActivities,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            )
+          else if (activities.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(30),
+              decoration: panelDecoration,
+              child: const Column(
+                children: [
+                  Icon(Icons.history_rounded, color: violet, size: 42),
+                  SizedBox(height: 12),
+                  Text(
+                    'No activity records available.',
+                    style: TextStyle(color: dark, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 6),
+                  Text(
+                    'Your recorded activities will appear here.',
+                    style: TextStyle(color: gray, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            ...activities.map((item) {
+              final title = activityTitle(item);
+              final description =
+                  item['description']?.toString() ?? 'Activity recorded.';
+              final time = formatDate(item['created_at']);
+
+              return ActivityTile(
+                icon: activityIcon(item),
+                title: title,
+                subtitle: description,
+                time: time,
+              );
+            }),
         ],
       ),
     );
@@ -879,10 +1443,16 @@ class ActivityPage extends StatelessWidget {
 // PROFILE
 
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final Map<String, dynamic> user;
+
+  const ProfilePage({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
+    final name = user['name']?.toString() ?? 'Patient Account';
+    final email = user['email']?.toString() ?? 'Not available';
+    final role = user['role']?.toString() ?? 'patient';
+
     return PageContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -896,34 +1466,31 @@ class ProfilePage extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(28),
             decoration: panelDecoration,
-            child: const Column(
+            child: Column(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   radius: 42,
                   backgroundColor: violetLight,
                   child: Icon(Icons.person, color: violet, size: 43),
                 ),
-                SizedBox(height: 15),
+                const SizedBox(height: 15),
                 Text(
-                  'Patient Account',
-                  style: TextStyle(
+                  name,
+                  style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 21,
                     color: dark,
                   ),
                 ),
-                SizedBox(height: 5),
-                Text('patient@example.com', style: TextStyle(color: gray)),
+                const SizedBox(height: 5),
+                Text(email, style: const TextStyle(color: gray)),
               ],
             ),
           ),
           const SizedBox(height: 20),
-          const ProfileField(label: 'Full Name', value: 'Patient Account'),
-          const ProfileField(
-            label: 'Email Address',
-            value: 'patient@example.com',
-          ),
-          const ProfileField(label: 'Account Role', value: 'Patient'),
+          ProfileField(label: 'Full Name', value: name),
+          ProfileField(label: 'Email Address', value: email),
+          ProfileField(label: 'Account Role', value: role),
         ],
       ),
     );

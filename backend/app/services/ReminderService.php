@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ActivityLog;
 use App\Models\Reminder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -10,18 +11,40 @@ class ReminderService
 {
     public function process(Reminder $reminder): void
     {
-        if ($reminder->status === 'delivered' ||
-            $reminder->status === 'manual_review') {
+        if (
+            $reminder->status === 'delivered' ||
+            $reminder->status === 'manual_review'
+        ) {
             return;
         }
 
         if ($reminder->attempt_count >= $reminder->max_attempts) {
-            $this->sendToManualReview($reminder, 'Maximum attempts reached.');
+            $this->sendToManualReview(
+                $reminder,
+                'Maximum attempts reached.'
+            );
+
             return;
         }
 
         DB::transaction(function () use ($reminder) {
             $reminder->refresh();
+
+            if (
+                $reminder->status === 'delivered' ||
+                $reminder->status === 'manual_review'
+            ) {
+                return;
+            }
+
+            if ($reminder->attempt_count >= $reminder->max_attempts) {
+                $this->sendToManualReview(
+                    $reminder,
+                    'Maximum attempts reached.'
+                );
+
+                return;
+            }
 
             $reminder->update([
                 'status' => 'processing',
@@ -43,12 +66,22 @@ class ReminderService
             ]);
 
             if ($result['status'] === 'delivered') {
+                $oldStatus = $reminder->status;
+
                 $reminder->update([
                     'status' => 'delivered',
                     'delivered_at' => now(),
                     'next_attempt_at' => null,
                     'failure_reason' => null,
                 ]);
+
+                $this->recordActivity(
+                    $reminder,
+                    'reminder_delivered',
+                    $oldStatus,
+                    'delivered',
+                    'Reminder delivery completed successfully.'
+                );
 
                 Log::info('Reminder delivered', [
                     'reminder_id' => $reminder->id,
@@ -78,6 +111,8 @@ class ReminderService
 
             $nextAttempt = now()->addMinute();
 
+            $oldStatus = $reminder->status;
+
             $reminder->update([
                 'status' => 'retrying',
                 'next_attempt_at' => $nextAttempt,
@@ -89,6 +124,14 @@ class ReminderService
                 ->update([
                     'next_retry_at' => $nextAttempt,
                 ]);
+
+            $this->recordActivity(
+                $reminder,
+                'reminder_retry_scheduled',
+                $oldStatus,
+                'retrying',
+                'Reminder delivery failed temporarily. A retry was scheduled.'
+            );
 
             Log::warning('Reminder scheduled for retry', [
                 'reminder_id' => $reminder->id,
@@ -126,14 +169,42 @@ class ReminderService
         Reminder $reminder,
         string $reason
     ): void {
+        $oldStatus = $reminder->status;
+
         $reminder->update([
             'status' => 'manual_review',
             'next_attempt_at' => null,
             'failure_reason' => $reason,
         ]);
 
+        $this->recordActivity(
+            $reminder,
+            'reminder_manual_review',
+            $oldStatus,
+            'manual_review',
+            'Reminder delivery requires human review.'
+        );
+
         Log::error('Reminder requires manual review', [
             'reminder_id' => $reminder->id,
+        ]);
+    }
+
+    private function recordActivity(
+        Reminder $reminder,
+        string $eventType,
+        ?string $oldStatus,
+        ?string $newStatus,
+        string $description
+    ): void {
+        ActivityLog::create([
+            'user_id' => null,
+            'event_type' => $eventType,
+            'subject_type' => Reminder::class,
+            'subject_id' => $reminder->id,
+            'old_status' => $oldStatus,
+            'new_status' => $newStatus,
+            'description' => $description,
         ]);
     }
 }
